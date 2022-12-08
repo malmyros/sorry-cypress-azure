@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cypress-director
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cypress-director
+  template:
+    metadata:
+      labels:
+        app: cypress-director
+    spec:
+      containers:
+        - name: cypress-director
+          image: agoldis/sorry-cypress-director:latest
+          imagePullPolicy: Always
+          env:
+            - name: DASHBOARD_URL
+              value: https://cypress<DOMAIN>.com
+            - name: EXECUTION_DRIVER
+              value: ../execution/mongo/driver
+            - name: MONGODB_DATABASE
+              value: sorry-cypress
+            - name: MONGODB_URI
+              value: mongodb://mongo-service:27017
+            - name: SCREENSHOTS_DRIVER
+              value: ../screenshots/azure-blob-storage.driver
+            - name: AZURE_CONNEXION_STRING
+              value: ''
+            - name: AZURE_CONTAINER_NAME
+              value: 'sorrycypress'
+            - name: AZURE_UPLOAD_URL_EXPIRY_IN_HOURS
+              value: '24'
+          ports:
+            - containerPort: 1234
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cypress-director
+spec:
+  ports:
+    - port: 1234
+  selector:
+    app: cypress-director
