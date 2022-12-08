@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cypress-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cypress-dashboard
+  template:
+    metadata:
+      labels:
+        app: cypress-dashboard
+    spec:
+      containers:
+        - name: cypress-dashboard
+          image: agoldis/sorry-cypress-dashboard:latest
+          imagePullPolicy: Always
+          env:
+            - name: GRAPHQL_SCHEMA_URL
+              value: https://cypress-api.<DOMAIN>.com
+            - name: GRAPHQL_CLIENT_CREDENTIALS
+              value: ''
+            - name: CI_URL
+              value: ''
+            - name: PORT
+              value: '8080'
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cypress-dashboard
+spec:
+  ports:
+    - port: 8080
+  selector:
+    app: cypress-dashboard
