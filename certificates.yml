@@ -1,0 +1,21 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tls-secret
+spec:
+  secretName: tls-secret
+  dnsNames:
+    - cypress.<DOMAIN>.com
+    - cypress-api.<DOMAIN>.com
+    - cypress-director.<DOMAIN>.com
+  acme:
+    config:
+      - http01:
+          ingressClass: nginx
+        domains:
+          - cypress.<DOMAIN>.com
+          - cypress-api.<DOMAIN>.com
+          - cypress-director.<DOMAIN>.com
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
