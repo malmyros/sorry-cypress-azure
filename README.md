@@ -193,3 +193,35 @@ To do this we need to run:
 ```
 kubectl get certificate -n default
 ```
+
+### Azure pipeline
+
+Finally here is an example of a job that will run sorry-cypress against 3 machines.
+
+```
+- job: RunCypress
+        displayName: 'Run Cypress'
+        strategy:
+          parallel: 3
+        pool:
+          vmImage: $(vmImageName)
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '14.17.3'
+            displayName: 'Install Node.js'
+
+          - script: |
+              echo -e 'pcm.!default {\n type hw\n card 0\n}\n\nctl.!default {\n type hw\n card 0\n}' > ~/.asoundrc
+            displayName: 'Set the sound card to null to prevent Cypress from timing out'
+
+          - script: |
+              npm i -D
+            displayName: 'Install Dependencies'
+
+          - script: |
+              CYPRESS_API_URL="https://cypress-director.<DOMAIN>.com/" npx cy2-azure run --config-file cypress.dev.json --parallel --record --key <KEY> --ci-build-id $(tag) --group "Azure CI"
+            displayName: 'Run Integration Tests'
+            env:
+              TERM: xterm
+```
