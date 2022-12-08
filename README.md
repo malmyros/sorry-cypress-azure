@@ -10,6 +10,8 @@ To get sorry-cypress running we need the following services:
 - Dashboard
 - Director
 - MongoDB
+- Ingress Route
+- Certificates
 
 ### Documentation
 
@@ -105,4 +107,89 @@ Now run the following to create a default database
 ```
 mongo
 use sorry-cypress
+```
+
+### Ingress Route
+
+To install it we need to do the following:
+
+### Add the ingress-nginx repository with helm
+
+```
+helm repo add ingress https://kubernetes.github.io/ingress-nginx
+```
+
+Now we can create our nginx ingress controller for our namespace and apply
+the public static IP address we created earlier. The ingress controller will be
+configured using an ingress route to direct traffic to each pod in the cluster.
+
+```
+helm install nginx-ingress ingress-nginx/ingress-nginx \
+    --namespace default \
+    --set controller.replicaCount=2 \
+    --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \
+    --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux \
+    --set controller.admissionWebhooks.patch.nodeSelector."beta\.kubernetes\.io/os"=linux
+```
+
+### View the status of the controller running
+
+```
+kubectl get services -o wide -w nginx-ingress-ingress-nginx-controller
+```
+
+### Create the Ingress Controller
+
+```
+kubectl apply -f <ENVIRONMENT>-ingress-route.yml
+```
+
+### Certificates
+
+Before we start applying manifest files for creating our resources 
+in our cluster we need to install the Cert Manager.
+
+```
+# Label the cert-manager namespace to disable resource validation
+kubectl label namespace default cert-manager.io/disable-validation=true
+
+# Add the Jetstack Helm repository
+helm repo add jetstack https://charts.jetstack.io
+
+# Update your local Helm chart repository cache
+helm repo update
+
+# Install the cert-manager Helm chart
+helm install cert-manager jetstack/cert-manager \
+  --namespace default \
+  --set installCRDs=true \
+  --set nodeSelector."kubernetes\.io/os"=linux \
+  --set webhook.nodeSelector."kubernetes\.io/os"=linux \
+  --set cainjector.nodeSelector."kubernetes\.io/os"=linux
+```
+
+Next we need to install our cluster issuer which is going to be
+responsible for generating the certificates for our domain and
+sub-domains.
+
+```
+# Create a CA cluster issuer
+kubectl apply -f cluster-issuer.yml
+```
+
+To generate a new certificate we can apply the following
+configuration on our cluster, and the Cert Manager will 
+handle everything else for us.
+
+```
+kubectl apply -f certificates.yml --validate=false
+```
+
+When we want to evaluate whether our certificate for SSL 
+is configured correctly.
+
+To do this we need to run:
+
+```
+kubectl get certificate -n default
 ```
